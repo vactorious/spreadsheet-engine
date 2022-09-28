@@ -1,0 +1,167 @@
+CS130 Project 3 - Design Document
+=================================
+
+Please answer all questions in this design document.  Note that the final
+feedback section is optional, and you are not required to answer it if you
+don't want to.
+
+Unanswered or incompletely answered questions, or answers that don't actually
+match the code/repository, will result in deductions.
+
+Answers don't have to be deeply detailed!  We are mainly looking for an
+overview or summary description of how your project works, and your team's
+experiences working on this project.
+
+Logistics (7 pts)
+-----------------
+
+L1.  [2pts] Enumerate all teammates here.
+        Matthew Gonzalgo
+        Victor Huang
+        John Kim
+
+L2.  [2pts] What did each teammate focus on during this project?
+        We all worked together on each part: moving/copying cells,
+        relative/absolute cell references, and performance improvement.
+
+L3.  [3pts] Approximately how many hours did each teammate spend on the project?
+        ~ 12 hours each
+
+Spreadsheet Engine Design (10 pts)
+----------------------------------
+
+D1.  [3pts] Moving and copying regions of a sheet are very similar operations,
+     with only a few differences between them.  How did your team take advantage
+     of the similarity of these two operations to reduce the amount of code
+     required to provide this functionality?
+        We created a helper function that is called by both move_cells and
+        copy_cells. This helper function handles all the logic that is used for
+        moving/copying, and takes in a boolean variable to differentiate which
+        function is calling the helper. If move_cells is calling the helper,
+        there is an added step of deleting the cells from the source location.
+
+D2.  [3pts] Similarly, moving/copying regions of a sheet, and renaming a sheet,
+     both involve formula updates.  Was your team able to factor out common
+     aspects of these two operations to reduce the amount of code required to
+     implement these operations?  If so, what did you do?  If not, why not?
+        We created a new visitor to be used with moving/copying for formula
+        updates. This visitor updates the contents formula based on
+        how far the move is. This is a separate visitor from the one that edits
+        formulas for renaming sheets. We used separate visitors because the
+        actions performed on each formula are different, although the visiting
+        part is the same (hence the inheritance).
+
+D3.  [4pts] How does your implementation address the challenges of moving or
+     copying a region of cells where the source and target regions overlap?
+        In order to account for overlapping source and target regions, we first
+        store the information from the source cells. If move_cells is called,
+        we set the cells in the source region to empty. Otherwise we skip this
+        step if copy_cells is called. Then for both move_cells and copy_cells,
+        we set the cells in the target region using the stored information 
+        from the source cells.
+
+Static Code Analysis / Code Linting (10pts)
+-------------------------------------------
+
+L1.  [3pts] What code linter did your team use on your project?  Was this the
+     first CS130 project in which you used a linter?
+        We use both flake8 and mypy.
+        We have been using these linters since project 1. 
+
+L2.  [3pts] How did you automate the execution of your code linter?  Did
+     everyone in your team find it easy to run?
+        We were able to set up a GitHub action that automatically runs the
+        linter tests whenever we push a commit to GitHub. We have also 
+        installed flake8 and mypy to our pipenv environment which allows us to
+        run the linters locally. With this setup, we find the linters very easy
+        to run.
+
+L3.  [4pts] Did the use of the linter improve your overall code quality and
+     correctness?  Give some specific details in your answer.  Were there any
+     serious issues you were previously unaware of?
+        Using the linter has definitely improved our overal code quality and
+        correctness since it brings errors to our attention that we would
+        certainly overlook on our own. Besides the basic "line too long",
+        spacing, and indentation errors that are very common, we often run into
+        typing conflicts that the linters are able to point out
+        based on our type hinting. 
+
+Performance Improvement (23 pts)
+--------------------------------
+
+In this project you must improve the performance of two central areas of your
+spreadsheet engine - cell updating and cycle detection.  In the previous project
+your team should have written some performance-testing code in preparation for
+this effort, and should have run it under a profiler to get an initial sense of
+where improvements can be made.  In this project you need to follow through on
+this setup, and address performance issues in your code.
+
+P1.  [9pts] Give a brief overview of 3-4 of the worst hot-spots you identified
+     in your performance testing and analysis.  For each one, describe how your
+     team was able to resolve it.
+          1. The extent of a sheet was calculated every time a cell was updated
+             in a very inefficient way, causing slow runtimes. We were able to
+             resolve it by using max heaps and running counters instead of
+             taking the maximum of sets. This means that extent is calculated
+             only when get_extent is called, not every time a cell is updated.
+          2. Lark parse functions were taking up around 1/4 of the runtime. We
+             could not really do anything about this because the parse function
+             is inside the Lark implementation, and improving that would
+             involve looking into and rewriting the Lark package itself. This
+             also applies to the transform functions from Lark.
+          3. We wanted to use generators instead of lists for some functions
+             for the sake of efficiency for long lists. This was done by
+             replacing the topological sort return type to be Generator, and
+             using yield instead of returning an entire list. The rest of the
+             code was basically the same and did not need much change.
+
+P2.  [6pts] Did your team try anything to address performance issues and find
+     that it didn't improve things at all?  If so, were you able to identify why
+     the intended fix didn't produce the desired benefit?
+          Implementing the use of generators in the topological sort caused
+          negligible change on runtime of tests. This fix didn't produce the
+          desired benefit probably because generators improve memory efficiency
+          and may not have much improvement on time efficiency.
+
+P3.  [4pts] How do you feel that your performance updates affected your code's
+     readability and maintainability?  Elaborate on your answer.
+          The performance updates slightly affected our code's readability
+          and maintainability. The changes to extent could arguably have made
+          the code more complicated than just taking the max of some sets, but
+          our understanding of the code is sufficient for us to maintain it. As
+          for readability, it may be harder to understand the myriad of heaps
+          and dict counters used to calculate the extent. The switch to
+          generators in topological sort was essentially the same as lists
+          readability-wise, and they work similarly compared to each other.
+
+P4.  [4pts] Did your performance updates cause any regressions in functionality?
+     If so, briefly describe any issues that emerged.  How were these issues
+     identified (e.g. automated test failures, manual testing, etc.)?  How
+     quickly were issues identified?
+          Our updates did not cause any regressions in functionality. They
+          improved the runtime of code dramatically, and still passed all our
+          test suites.
+
+Section F:  CS130 Project 3 Feedback [OPTIONAL]
+-----------------------------------------------
+
+These questions are OPTIONAL, and you do not need to answer them.  Your grade
+will not be affected by answering or not answering them.  Also, your grade will
+not be affected by negative feedback - we want to know what went poorly so that
+we can improve future versions of the course.
+
+F1.  What parts of the assignment did you find highly enjoyable?  Conversely,
+     what parts of the assignment did you find unenjoyable?
+
+
+F2.  What parts of the assignment helped you learn more about software
+     engineering best-practices, or other useful development skills?
+     What parts were not helpful in learning these skills?
+
+
+F3.  Were there any parts of the assignment that seemed _unnecessarily_ tedious?
+     (Some parts of software development are always tedious, of course.)
+
+
+F4.  Do you have any feedback and/or constructive criticism about how this
+     project can be made better in future iterations of CS130?

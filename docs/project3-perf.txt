@@ -1,0 +1,46 @@
+Theory -    A sheet's extent was being updated every time a cell was updated.
+            This is very inefficient because our extent was being updated by
+            putting all possible columns and rows in two sets, then taking the
+            max of them. With many cell updates, these operations were done
+            many times.
+Rationale - Our sheet's get_extent() function was taking more than 3/4 of the
+            total runtime of the tests (16 out of 21 secs for 10000 updates).
+Outcome -   Great success! Each stress test function is now taking one-third
+            of the time as compared to before (6-9 seconds instead of 20-25
+            seconds). Instead of adding to sets and taking the max for every
+            update, we now use a combo of max heaps and running counters. All
+            in all, the stress test suite takes around 35 seconds compared to
+            around 90 seconds from before for 10000 cell updates.
+
+
+Theory -    The topological sort function was returning a list of cells
+            that needed to be updated in that order, but this list was only
+            being iterated over once. As the number of cycles and reference
+            chain could grow, storing this ordering as a list is memory
+            inefficient. By changing the function to return a generator and
+            lazily yield the cells as they are needed, the program should
+            be slightly more memory efficient and a little faster.
+Rationale - There aren't many data/measurements that indicate this is an issue,
+            in fact there are none. However, as we were writing the entire
+            spreadsheet engine, this was a possible improvement we kept in
+            mind.
+Outcome -   Our combined performance tests indicate a negligent change in
+            runtime, which was to be expected as this isn't a major change
+            that changes the runtime/space complexity. Still a good to have,
+            though.
+
+
+Other than these two issues, there is not much to improve on that would not
+involve drastic reimplementation of internal Lark code. This is because the
+first ~450 called functions (first 10% of all functions) outputted by the
+stress test profiling (ranked by cumulative time taken) all have to do with
+Lark parsing, transforming, and visiting. The severe culprits are Lark.parse
+(~6 seconds for each test function) and Lark.transform (~2 seconds) for each
+function and their pertinent sub-functions. The rest of the functions listed
+all take less than 0.05 seconds cumulatively, and either involve native
+functions (set add/pop) or are not worth the minimal time improvement (in the
+context of 10000 cell updates). Therefore, the tradeoff between efficiency
+improvement and ease of implementation is too big to justify revamping Lark
+parsing and transforming. Moreover, our implementation was doing better than
+the refimpl even before our get_extent() change, and that change cut our test
+times by 2/3.

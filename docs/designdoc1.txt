@@ -1,0 +1,205 @@
+CS130 Project 1 - Design Document
+=================================
+
+Please answer all questions in this design document.  Note that the final
+feedback section is optional, and you are not required to answer it if you
+don't want to.
+
+Unanswered or incompletely answered questions, or answers that don't actually
+match the code/repository, will result in deductions.
+
+Answers don't have to be deeply detailed!  We are mainly looking for an
+overview or summary description of how your project works, and your team's
+experiences working on this project.
+
+Logistics (7 pts)
+------------------
+
+L1.  [2pts] Enumerate all teammates here.
+          Matthew Gonzalgo
+          Victor Huang
+          John Kim
+
+L2.  [2pts] What did each teammate focus on during this project?
+          Matthew: class implementations, lark parsing, type conversions
+          Victor:  class implementations (get cell, delete sheet, error 
+                   checking/handling), topological sort, util functions
+          John:    testing framework, class implementations, cycle detection
+
+L3.  [3pts] Approximately how many hours did each teammate spend on the project?
+          ~ 25 hours each 
+
+Spreadsheet Engine Design (20 pts)
+----------------------------------
+
+D1.  [3pts] Describe the high-level design abstractions (e.g. classes and/or
+     submodules) in your spreadsheet engine, and what purposes these various
+     abstractions fulfill.
+          Workbook: Contains a list of Sheet objects. 
+                    Sheets can be added and deleted.
+                    Cell contents within each stored Sheet can be updated.
+                    Cell contents and values can be retrieved.
+
+          Sheet:    Contains a dictionary mapping Tuple[int, int] locations to
+                    Cell objects.
+                    Also stores the Sheet's name and extent.
+
+          Cell:     We have a Cell class that stores a variety of information 
+                    for each cell location:
+                         loc - the Cell's location in the sheet.
+                         contents - the raw contents string. 
+                         val - the interpreted value from the contents string.
+                         val_type - the CellType value.
+                         sheet_name - the name of the Sheet the Cell belongs to.
+                         pt - if contents is a formula, we store the parse tree.
+                         children: the set of children Cells that depend on 
+                                   this Cell.
+                         parents: the set of parent Cells that this Cell
+                                  depends on.
+            
+D2.  [4pts] Why did you choose the design you chose?  Describe other designs
+     (or perhaps earlier versions of the above design) that you considered,
+     and why you ended up not using them.
+          It was a natural decision to create a Sheet class knowing that a 
+          Workbook would need to be able to store several Sheet objects with
+          each Sheet storing its own data.
+
+          We initially thought that we could store just values for each cell
+          location within a sheet, but we quickly realized that we needed to
+          know a lot of information about each cell - much more than just its
+          value - so we decided it would be best to create an entire Cell class.
+
+D3.  [4pts] At a high level (e.g. pseudocode or higher), enumerate the steps
+     that your spreadsheet engine goes through when a caller sets a cell's
+     contents.
+          - The user calls set_cell_content() at the workbook scope.
+            specifying a sheet_name, loc, contents.
+          - set_cell_content() calls update_cell() at the sheet scope.
+          - update_cell() calls utility functions parse_loc() which takes in
+            the location string and outputs a Tuple[int, int] (col, row).
+          - update_cell() then calls parse_contents(), which determines whether
+            the contents are formula, number, string, etc. and evaluates
+            accordingly. It outputs a (stripped) contents, val, CellType, and
+            parse tree (if needed).
+          - Back in update_cell(), a cell is created if it doesn't already
+            exist at that location in the sheet, and the cell's contents,
+            val, type, parsetree, and sheet name are set. The cell is returned.
+          - Back in set_cell_content(), a visitor is run through the parse tree
+            and the cell's parents are updated accordingly, along with the
+            parent's children.
+          - Cycle detection is run on the updated cell. Given no cycle,
+            topological sort is run on the cell, outputting a list of cells.
+            Each cell in the list is evaluated in order using the transformer,
+            if its contents are a formula. The cell value is updated.
+
+D4.  [3pts] How does your spreadsheet engine identify what other cells need
+     updating when a cell's contents are changed, and what order to update them?
+          When a cell is updated and wb.set_cell_content() is called, we get
+          an updated cell from update_cell().
+
+          A topological sort is called on the updated cell, which goes through
+          its children set and sorts every cell in evaluation order. A list of
+          Cells is returned, and we iterate through the list in order
+          to evaluate using the transformer..
+
+D5.  [3pts] How does your spreadsheet engine identify cycles between cells when
+     a cell update is performed?  Are cells in a cycle processed any differently
+     from other cells outside of the cycle?
+          Each cell stores both its parents (cells that it depends on) and its
+          children (cells that depend on it). Whenever a cell is updated, we
+          use the childrens set to construct a DAG cell dependency graph
+          because if a cell is evaluated to an error, errors should propagate
+          to its children, not parents. We then use an iterative implementation
+          of Kosaraju's algorithm to find strongly connected components
+          (cycles). All cells in the SCCs are then set to be CIRCREF errors,
+          whether they are directly in the cycle or not. Other cells that
+          aren't related to a cycle are evaluated separately using the 
+          lark's transformer class.
+
+D6.  [3pts] What steps does your spreadsheet engine go through when a sheet is
+     deleted from a workbook?  How does it identify cells that may be affected
+     by the sheet-deletion?
+          When a sheet is deleted from a workbook, the Sheet instance is found,
+          then we iterate through its cells. For each cell, we call
+          set_cell_contents(), which goes through the cell's children and
+          re-evaluates them using the same mechanisms as when we edit any cell.
+          The cell is then removed from the sheet. The sheet is then removed
+          from the workbook.
+
+Implementation Process (23 pts)
+-------------------------------
+
+P1.  [4pts] How did your team break down and keep track of the various tasks to
+     complete for this project?  Did you use the GitHub issue tracker, or some
+     other system like Trello, or some other tool?
+          We used a to-do list in Notion, which was populated by going through
+          the project spec. Issues were created on Github to keep track of
+          tasks, and branches were created based on these issues.
+
+P2.  [4pts] How did you assign tasks to teammates?  Did you stick with your
+     task-assignments through the project, or did you shift around tasks as the
+     project progressed?  Why?
+          We informally chose issues to start working on, but we would also
+          work together and help each other complete tasks if needed. We did
+          this to improve efficiency, allowing for new perpective and methods
+          to tackle problems we ran into.
+
+P3.  [4pts] How would you characterize the quality of your project testing?
+     Make sure to touch on these items:  Is it automated?  Is it easy for
+     teammates to run?  Is it fast?  Is it reasonably complete?
+          We used the built in unittest module and set up GitHub actions for
+          test automation. We created a Makefile to make testing fast and easy
+          to run, and we did our best to include a variety of edge cases
+          testing many different functionalities. The tests run quickly, and
+          have good coverage of our code.
+
+P4.  [3pts] What mechanisms did your team use for communication during the
+     project?  Did you find them to be effective?  What issues did you
+     encounter, if any?
+          We met in person whenever possible and communicated remotely using
+          discord and messenger. We found this combination of communication 
+          methods to work pretty well. It was more difficult to work together
+          remotely.
+
+P5.  [3pts] Did you use any kind of collaborative construction techniques, e.g.
+     code reviews or pair-programming, during the project?  If so, what are your
+     observations about its usefulness?  Did you find it to have any downsides?
+          We used VSCode liveshare for pair-programming. It enabled us to do
+          pair-programming remotely, and we found that it was particularly
+          effective when working on a substantial part of the project that
+          required a collaborative effort to complete. Pull requests were
+          generally reviewed by other members of the group.
+
+P6.  [5pts] What would you like to improve about your team's development
+     process, going forward?
+          We could possibly improve our use of feature branches; sometimes
+          our branches included many more changes than the issue it was named
+          to address.
+
+Section F:  CS130 Project 1 Feedback [OPTIONAL]
+-----------------------------------------------
+
+These questions are OPTIONAL, and you do not need to answer them.  Your grade
+will not be affected by answering or not answering them.  Also, your grade will
+not be affected by negative feedback - we want to know what went poorly so that
+we can improve future versions of the course.
+
+F1.  What parts of the assignment did you find highly enjoyable?  Conversely,
+     what parts of the assignment did you find unenjoyable?
+          It has felt very rewarding feeling our hard work pay off and seeing
+          complex functionality working. 
+
+          So far working on the project has been extremely time consuming,
+          much more than 9 units (see L3).
+
+F2.  What parts of the assignment helped you learn more about software
+     engineering best-practices, or other useful development skills?
+     What parts were not helpful in learning these skills?
+
+
+F3.  Were there any parts of the assignment that seemed _unnecessarily_ tedious?
+     (Some parts of software development are always tedious, of course.)
+
+
+F4.  Do you have any feedback and/or constructive criticism about how this
+     project can be made better in future iterations of CS130?

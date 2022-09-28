@@ -1,0 +1,150 @@
+CS130 Project 5 - Design Document
+=================================
+
+Please answer all questions in this design document.  Note that the final
+feedback section is optional, and you are not required to answer it if you
+don't want to.
+
+Unanswered or incompletely answered questions, or answers that don't actually
+match the code/repository, will result in deductions.
+
+Answers don't have to be deeply detailed!  We are mainly looking for an
+overview or summary description of how your project works, and your team's
+experiences working on this project.
+
+Logistics (7 points)
+--------------------
+
+L1.  [2pts] Enumerate all teammates here.
+     Victor Huang, John Kim, Matthew Gonzalgo
+
+L2.  [2pts] What did each teammate focus on during this project?
+     Victor: Range tests, sort tests, sorting regions
+     John: Lookup functions, sorting regions
+     Matthew: Lookup functions, performance improvements
+
+L3.  [3pts] Approximately how many hours did each teammate spend on the project?
+     ~15 hours each
+
+Spreadsheet Engine Design (27 points)
+-------------------------------------
+
+D1.  [4pts] Briefly describe the changes you made to the Lark parser grammar to
+     support cell-range references.  Can they appear anywhere in expressions, or
+     does your grammar constrain them to appear only in particluar contexts?
+          We added support for cell-range references by creating an rule for
+          ranges (cell_range), which includes an optional sheet name, and two
+          cellrefs with a colon between them. We don't use the cell rule here
+          because it would actually evaluate that rule (bottom-up), which would
+          cause loss of information needed to get all cells in the range. Then,
+          in the function rule, we added the option of including ranges in the
+          arguments. Cell ranges cannot appear anywhere else except func args.
+
+D2.  [4pts] How easy or hard was it to incorporate cell-range references into
+     formula evaluation?  Elaborate on your answer.
+          It was not hard to incorporate cell-range references into formula
+          evaluation. We incorporated some code from move/copy cells to get
+          constant corners of each area. Then, the transformer goes through
+          all the cells in the range, taking all their values and putting them
+          into a list, which is returned to do whatever is needed with it.
+
+D3.  [4pts] How did you incorporate cell-range references into the cycle-
+     detection functionality of your project?  Explain why you chose this design
+     over other possible designs; for example, what benefits were you hoping to
+     achieve, or what issues were you trying to avoid?
+          We were not able to incorporate cell-range references into the cycle-
+          detection functionality.
+
+D4.  [4pts] Give an overview of the structural aspects (modules, classes, etc.)
+     of how you implemented sorting.  Do you sort the rows directly?  Do you
+     use proxy objects instead?  Some other technique?
+          We sorted the rows directly, without proxy objects. We created some
+          tuples and sorted those, then reordered the rows based on the tuple
+          order.
+
+D5.  [4pts] Give an overview of the behavioral aspects of how you implemented
+     sorting.  At a high level, enumerate the steps that your engine goes
+     through to sort a region of a spreadsheet.
+          First, we grabbed the cell values of each column in sort_col and
+          put them into a tuple for each row (along with row number). Now we
+          have a list of tuples like (row, val of sort_col[0], val of
+          sort_col[1], ...). Then we perform a sort on these tuples using each
+          sort_col. Then, we reorder the rows based on the row value in the
+          tuples.
+
+D6.  [4pts] How does your implementation solve the problem of supporting the
+     user-specified row ordering based on both the columns and the ordering to
+     sort by?  Did you create any classes or functions to help specifically with
+     this task?
+          We wrote a custom sort function which includes a comparator function
+          and indexing into the tuples. This way, when we sort the tuple list,
+          we are able to call the custom sort function. We sort the tuples
+          multiple times, one for each element in the tuple, from back to
+          front. This results in the correct ordering of columns and
+          orientation. Also, we wrote comparators for the CellError and
+          CellErrorType classes so we could compare them directly.
+
+D7.  [3pts] Briefly describe the changes you made to your spreadsheet engine to
+     satisfy the stricter cell-change notification behaviors.  Did you find this
+     to be largely straightforward to change?  Why or why not?
+          We already accounted for this in the previous project.
+
+Performance Improvement (16 pts)
+--------------------------------
+
+In this project you must improve the performance of operations that involve
+bulk updating of cell formulas and/or values.  In the previous project your
+team should have written some performance-testing code in preparation for this
+effort, and should have run it under a profiler to get an initial sense of
+where improvements can be made.  In this project you need to follow through on
+this setup, and address performance issues in your code.
+
+P1.  [6pts] Give a brief overview of 2-3 of the worst hot-spots you identified
+     in your performance testing and analysis.  For each one, describe how your
+     team was able to resolve it.
+          Our worst hotspots were the rename sheet and move/copy cell
+          implementations.
+          Unfotunately we were unable to resolve these hot-spots.
+
+P2.  [4pts] Did your team try anything to address performance issues and find
+     that it didn't improve things at all?  If so, were you able to identify why
+     the intended fix didn't produce the desired benefit?
+          In our move_copy_cells_helper, we tried eliminating the
+          quantify_cell_loc() call on the bottom right cell in the specified
+          range for the out-of-bounds check. However, this change did not
+          improve performance.
+
+P3.  [3pts] How do you feel that your performance updates affected your code's
+     readability and maintainability?  Elaborate on your answer.
+          There was not much to improve in terms of readability.
+          In terms of maintainability, not much was changed. 
+
+P4.  [3pts] Did your performance updates cause any regressions in functionality?
+     If so, briefly describe any issues that emerged.  How were these issues
+     identified (e.g. automated test failures, manual testing, etc.)?  How
+     quickly were issues identified?
+          No performance updates caused any regressions in functionality
+
+Section F:  CS130 Project 4 Feedback [OPTIONAL]
+-----------------------------------------------
+
+These questions are OPTIONAL, and you do not need to answer them.  Your grade
+will not be affected by answering or not answering them.  Also, your grade will
+not be affected by negative feedback - we want to know what went poorly so that
+we can improve future versions of the course.
+
+F1.  What parts of the assignment did you find highly enjoyable?  Conversely,
+     what parts of the assignment did you find unenjoyable?
+
+
+F2.  What parts of the assignment helped you learn more about software
+     engineering best-practices, or other useful development skills?
+     What parts were not helpful in learning these skills?
+
+
+F3.  Were there any parts of the assignment that seemed _unnecessarily_ tedious?
+     (Some parts of software development are always tedious, of course.)
+
+
+F4.  Do you have any feedback and/or constructive criticism about how this
+     project can be made better in future iterations of CS130?

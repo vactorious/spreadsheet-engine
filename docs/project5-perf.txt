@@ -1,0 +1,23 @@
+Theory -    In rename_sheet, we were calling a visitor every time,
+            regardless of whether or not there were cell references. By
+            checking if there are any cells with cell references in the sheet
+            to be renamed, we can eliminate unnecessary calls to the visitor
+            which should significantly improve speeds.
+
+Rationale - Our rename_sheet implementation was 109.1x slower than the
+            RenameSheetNoCellrefUpdateBenchmark from project 4.
+
+Outcome -   We tried making changes to improve renaming performance, but
+            unforuntately our attempts did not result better performance.
+
+
+Theory -    We were calling quantify_cell_loc() on the bottom right cell in the
+            specified range just for the purpose of checking if the bottom 
+            right cell is beyond the max cell location limit ZZZZ9999.
+            This has a 
+
+Rationale - Our move and copy sheet implementations were about 7x slower than
+            the benchmarks from project 4.
+
+Outcome -   We attempted to implement checking without calling
+            quantify_cell_loc() but were unable to get it working. 

@@ -1,0 +1,150 @@
+from sheets.workbook import Workbook
+from sheets.error import CellError, CellErrorType
+from decimal import Decimal
+import unittest
+
+
+class TestCellSortFunctionality(unittest.TestCase):
+    def test_cell_sort(self):
+        wb = Workbook()
+        _, name = wb.new_sheet()
+
+        wb.set_cell_contents(name, "A1", "1")
+        wb.set_cell_contents(name, "A2", "2")
+        wb.set_cell_contents(name, "A3", "3")
+        wb.set_cell_contents(name, "A4", "4")
+        wb.set_cell_contents(name, "A5", "5")
+        wb.set_cell_contents(name, "B1", "E")
+        wb.set_cell_contents(name, "B2", "D")
+        wb.set_cell_contents(name, "B3", "C")
+        wb.set_cell_contents(name, "B4", "B")
+        wb.set_cell_contents(name, "B5", "A")
+        wb.sort_region(name, "A1", "B5", [2])
+
+        self.assertEqual(wb.get_cell_value(name, "A1"), Decimal('5'))
+        self.assertEqual(wb.get_cell_value(name, "A2"), Decimal('4'))
+        self.assertEqual(wb.get_cell_value(name, "A3"), Decimal('3'))
+        self.assertEqual(wb.get_cell_value(name, "A4"), Decimal('2'))
+        self.assertEqual(wb.get_cell_value(name, "A5"), Decimal('1'))
+        self.assertEqual(wb.get_cell_value(name, "B1"), "A")
+        self.assertEqual(wb.get_cell_value(name, "B2"), "B")
+        self.assertEqual(wb.get_cell_value(name, "B3"), "C")
+        self.assertEqual(wb.get_cell_value(name, "B4"), "D")
+        self.assertEqual(wb.get_cell_value(name, "B5"), "E")
+
+    def test_sort_formulas(self):
+        wb = Workbook()
+        _, name = wb.new_sheet()
+
+        wb.set_cell_contents(name, "A1", "=C1")
+        wb.set_cell_contents(name, "A2", "=C2")
+        wb.set_cell_contents(name, "A3", "=C3")
+        wb.set_cell_contents(name, "A4", "=C4")
+        wb.set_cell_contents(name, "A5", "=C5")
+        wb.set_cell_contents(name, "B1", "E")
+        wb.set_cell_contents(name, "B2", "D")
+        wb.set_cell_contents(name, "B3", "C")
+        wb.set_cell_contents(name, "B4", "B")
+        wb.set_cell_contents(name, "B5", "A")
+        wb.set_cell_contents(name, "C1", "A")
+        wb.set_cell_contents(name, "C2", "B")
+        wb.set_cell_contents(name, "C3", "C")
+        wb.set_cell_contents(name, "C4", "D")
+        wb.set_cell_contents(name, "C5", "E")
+        wb.set_cell_contents(name, "D1", "=A1")
+        wb.sort_region(name, "A1", "B5", [2])
+
+        self.assertEqual(wb.get_cell_contents(name, "A1").upper(), "=C1")
+        self.assertEqual(wb.get_cell_contents(name, "A2").upper(), "=C2")
+        self.assertEqual(wb.get_cell_contents(name, "A3").upper(), "=C3")
+        self.assertEqual(wb.get_cell_contents(name, "A4").upper(), "=C4")
+        self.assertEqual(wb.get_cell_contents(name, "A5").upper(), "=C5")
+        self.assertEqual(wb.get_cell_value(name, "A1"), "A")
+        self.assertEqual(wb.get_cell_value(name, "A2"), "B")
+        self.assertEqual(wb.get_cell_value(name, "A3"), "C")
+        self.assertEqual(wb.get_cell_value(name, "A4"), "D")
+        self.assertEqual(wb.get_cell_value(name, "A5"), "E")
+        self.assertEqual(wb.get_cell_value(name, "B1"), "A")
+        self.assertEqual(wb.get_cell_value(name, "B2"), "B")
+        self.assertEqual(wb.get_cell_value(name, "B3"), "C")
+        self.assertEqual(wb.get_cell_value(name, "B4"), "D")
+        self.assertEqual(wb.get_cell_value(name, "B5"), "E")
+        self.assertEqual(wb.get_cell_contents(name, "D1"), "=A1")
+        self.assertEqual(wb.get_cell_value(name, "D1"), "A")
+
+    def test_sort_ties(self):
+        wb = Workbook()
+        _, name = wb.new_sheet()
+
+        wb.set_cell_contents(name, "A1", "1")
+        wb.set_cell_contents(name, "A2", "2")
+        wb.set_cell_contents(name, "A3", "3")
+        wb.set_cell_contents(name, "A4", "4")
+        wb.set_cell_contents(name, "A5", "5")
+        wb.set_cell_contents(name, "B1", "A")
+        wb.set_cell_contents(name, "B2", "A")
+        wb.set_cell_contents(name, "B3", "C")
+        wb.set_cell_contents(name, "B4", "E")
+        wb.set_cell_contents(name, "B5", "D")
+        wb.set_cell_contents(name, "C1", "A")
+        wb.set_cell_contents(name, "C2", "B")
+        wb.set_cell_contents(name, "C3", "C")
+        wb.set_cell_contents(name, "C4", "D")
+        wb.set_cell_contents(name, "C5", "E")
+        wb.sort_region(name, "A1", "C5", [2, 3])
+
+        self.assertEqual(wb.get_cell_value(name, "A1"), Decimal('1'))
+        self.assertEqual(wb.get_cell_value(name, "A2"), Decimal('2'))
+        self.assertEqual(wb.get_cell_value(name, "A3"), Decimal('3'))
+        self.assertEqual(wb.get_cell_value(name, "A4"), Decimal('5'))
+        self.assertEqual(wb.get_cell_value(name, "A5"), Decimal('4'))
+
+    def test_sort_orders(self):
+        wb = Workbook()
+        _, name = wb.new_sheet()
+
+        wb.set_cell_contents(name, "A1", "1")
+        wb.set_cell_contents(name, "A2", "2")
+        wb.set_cell_contents(name, "A3", "3")
+        wb.set_cell_contents(name, "A4", "4")
+        wb.set_cell_contents(name, "A5", "5")
+        wb.set_cell_contents(name, "B1", "A")
+        wb.set_cell_contents(name, "B2", "=MIN()")
+        wb.set_cell_contents(name, "B3", "B")
+        wb.set_cell_contents(name, "B4", "=1/0")
+        wb.sort_region(name, "A1", "B5", [-2])
+
+        self.assertEqual(wb.get_cell_value(name, "A1"), Decimal('3'))
+        self.assertEqual(wb.get_cell_value(name, "A2"), Decimal('1'))
+        self.assertEqual(wb.get_cell_value(name, "A3"), Decimal('4'))
+        self.assertEqual(wb.get_cell_value(name, "A4"), Decimal('2'))
+        self.assertEqual(wb.get_cell_value(name, "A5"), Decimal('5'))
+        self.assertEqual(wb.get_cell_value(name, "B5"), None)
+        self.assertTrue(isinstance(wb.get_cell_value(name, "B4"), CellError))
+        self.assertEqual(wb.get_cell_value(name, "B4").get_type(),
+                         CellErrorType.TYPE_ERROR)
+        self.assertTrue(isinstance(wb.get_cell_value(name, "B3"), CellError))
+        self.assertEqual(wb.get_cell_value(name, "B3").get_type(),
+                         CellErrorType.DIVIDE_BY_ZERO)
+        self.assertEqual(wb.get_cell_value(name, "B2"), "A")
+        self.assertEqual(wb.get_cell_value(name, "B1"), "B")
+
+    def test_sort_invalid(self):
+        wb = Workbook()
+        _, name = wb.new_sheet()
+
+        wb.set_cell_contents(name, "A1", "1")
+        wb.set_cell_contents(name, "A2", "2")
+        wb.set_cell_contents(name, "A3", "3")
+        wb.set_cell_contents(name, "A4", "4")
+        wb.set_cell_contents(name, "A5", "5")
+        wb.set_cell_contents(name, "B1", "E")
+        wb.set_cell_contents(name, "B2", "D")
+        wb.set_cell_contents(name, "B3", "C")
+        wb.set_cell_contents(name, "B4", "B")
+        wb.set_cell_contents(name, "B5", "A")
+
+        self.assertRaises(ValueError, wb.sort_region, name, "A1", "B5", [0])
+        self.assertRaises(ValueError, wb.sort_region, name, "A1", "B5",
+                          [-1, 1])
+        self.assertRaises(ValueError, wb.sort_region, name, "A1", "B5", [3])
